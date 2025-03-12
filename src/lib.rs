@@ -36,13 +36,10 @@ where
         let caller = Location::caller();
         anyhow::Context::context(
             self,
-            format!(
-                "{} at `{}@{}:{}`",
-                context,
-                caller.file(),
-                caller.line(),
-                caller.column()
-            ),
+            WithLocation {
+                error: context,
+                location: caller,
+            },
         )
     }
 
@@ -54,14 +51,9 @@ where
         F: FnOnce() -> C,
     {
         let caller = Location::caller();
-        anyhow::Context::with_context(self, || {
-            format!(
-                "{} at `{}@{}:{}`",
-                context(),
-                caller.file(),
-                caller.line(),
-                caller.column(),
-            )
+        anyhow::Context::with_context(self, || WithLocation {
+            error: context(),
+            location: caller,
         })
     }
 
@@ -69,15 +61,7 @@ where
     #[track_caller]
     fn dot(self) -> Result<T> {
         let caller = Location::caller();
-        anyhow::Context::context(
-            self,
-            format!(
-                "at `{}@{}:{}`",
-                caller.file(),
-                caller.line(),
-                caller.column()
-            ),
-        )
+        anyhow::Context::context(self, format!("at `{}`", caller))
     }
 }
 
@@ -94,13 +78,10 @@ where
         let caller = Location::caller();
         anyhow::Context::context(
             self,
-            format!(
-                "{} at `{}@{}:{}`",
-                context,
-                caller.file(),
-                caller.line(),
-                caller.column()
-            ),
+            WithLocation {
+                error: context,
+                location: caller,
+            },
         )
     }
 
@@ -112,14 +93,9 @@ where
         F: FnOnce() -> C,
     {
         let caller = Location::caller();
-        anyhow::Context::with_context(self, || {
-            format!(
-                "{} at `{}@{}:{}`",
-                context(),
-                caller.file(),
-                caller.line(),
-                caller.column(),
-            )
+        anyhow::Context::with_context(self, || WithLocation {
+            error: context(),
+            location: caller,
         })
     }
 
@@ -127,14 +103,31 @@ where
     #[track_caller]
     fn dot(self) -> Result<T> {
         let caller = Location::caller();
-        anyhow::Context::context(
-            self,
-            format!(
-                "at `{}@{}:{}`",
-                caller.file(),
-                caller.line(),
-                caller.column()
-            ),
-        )
+        anyhow::Context::context(self, format!("at `{}`", caller))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WithLocation<E> {
+    pub error: E,
+    pub location: &'static Location<'static>,
+}
+
+impl<E: std::fmt::Display> std::fmt::Display for WithLocation<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} at `{}`", self.error, self.location)
+    }
+}
+
+impl<E> AsRef<E> for WithLocation<E> {
+    fn as_ref(&self) -> &E {
+        &self.error
+    }
+}
+
+impl<E> std::ops::Deref for WithLocation<E> {
+    type Target = E;
+    fn deref(&self) -> &Self::Target {
+        &self.error
     }
 }

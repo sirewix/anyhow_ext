@@ -1,4 +1,4 @@
-# anyhow_ext
+# `anyhow_ext`
 
 An extension of [anyhow](https://github.com/dtolnay/anyhow). A drop-in replacement of anyhow.
 
@@ -30,7 +30,7 @@ fn foo() -> Result<()> {
 
 ## drop-in replacement of anyhow
 
-Since `anyhow_ext` re-exports all the thing in `anyhow` except for `Context`, you can use anyhow_ext as a drop-in replacement.
+Since `anyhow_ext` re-exports all the thing in `anyhow` except for `Context`, you can use `anyhow_ext` as a drop-in replacement.
 
 `Cargo.toml`
 ```toml
@@ -52,17 +52,17 @@ fn foo() -> Result<()> {
 `println!("{}", err)` looks like
 
 ```plain
-foo err at `src/bin/anyhow_ext.rs@6:11`
+foo err at `src/bin/anyhow_ext.rs:6:11`
 ```
 
 and `println!("{:?}", err)` looks like
 
 ```plain
-  foo err at `src/bin/anyhow_ext.rs@6:11`
+  foo err at `src/bin/anyhow_ext.rs:6:11`
 
   Caused by:
-  0: read_a_file err at `src/bin/anyhow_ext.rs@10:19`
-  1: an io err at `src/bin/anyhow_ext.rs@15:55`
+  0: read_a_file err at `src/bin/anyhow_ext.rs:10:19`
+  1: an io err at `src/bin/anyhow_ext.rs:15:55`
   2: No such file or directory (os error 2)
 ```
 
@@ -95,11 +95,34 @@ fn try_main() -> Result<()> {
 This will make a small backtrace.
 
 ```text
-at `examples/dot.rs@14:34`
+at `examples/dot.rs:14:34`
 
 Caused by:
-    0: at `examples/dot.rs@20:11`
-    1: at `examples/dot.rs@9:11`
-    2: at `examples/dot.rs@4:52`
+    0: at `examples/dot.rs:20:11`
+    1: at `examples/dot.rs:9:11`
+    2: at `examples/dot.rs:4:52`
     3: No such file or directory (os error 2)
+```
+
+## Downcasting
+
+Since every error is wrapped into internal `WithLocation` type, to extract (downcast)
+a user error you need to change
+
+```rust
+use std::fmt::Error as SomeErr;
+use anyhow::Context;
+
+assert!(None::<()>.context(SomeErr).context("some err").unwrap_err().is::<SomeErr>());
+assert!(None::<()>.context("some err").context(SomeErr).unwrap_err().is::<SomeErr>());
+```
+
+to
+
+```rust
+use std::fmt::Error as SomeErr;
+use anyhow_ext::{Context, WithLocation};
+
+assert!(None::<()>.context(SomeErr).context("some err").unwrap_err().is::<WithLocation<SomeErr>>());
+assert!(None::<()>.context("some err").context(SomeErr).unwrap_err().is::<WithLocation<SomeErr>>());
 ```
